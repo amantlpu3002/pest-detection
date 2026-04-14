@@ -55,7 +55,7 @@ def download_model_if_needed():
         with st.spinner("Downloading AI model (first time only, ~100MB)..."):
             # Method 1 — try direct download
             url = f'https://drive.google.com/uc?id={GDRIVE_FILE_ID}&export=download&confirm=t'
-            gdown.download(url, MODEL_PATH, quiet=False, fuzzy=True)
+            gdown.download(url, MODEL_PATH, quiet=False)
 
             # Check if downloaded successfully
             if not os.path.exists(MODEL_PATH) or os.path.getsize(MODEL_PATH) < 1000:
