@@ -52,14 +52,22 @@ def download_model_if_needed():
     try:
         import gdown
         os.makedirs(MODEL_DIR, exist_ok=True)
-        with st.spinner("Downloading AI model (first time only)..."):
-            url = f'https://drive.google.com/uc?id={GDRIVE_FILE_ID}'
-            gdown.download(url, MODEL_PATH, quiet=False)
-        if os.path.exists(MODEL_PATH):
+        with st.spinner("Downloading AI model (first time only, ~100MB)..."):
+            # Method 1 — try direct download
+            url = f'https://drive.google.com/uc?id={GDRIVE_FILE_ID}&export=download&confirm=t'
+            gdown.download(url, MODEL_PATH, quiet=False, fuzzy=True)
+
+            # Check if downloaded successfully
+            if not os.path.exists(MODEL_PATH) or os.path.getsize(MODEL_PATH) < 1000:
+                # Method 2 — try with different format
+                url2 = f'https://drive.google.com/uc?id={GDRIVE_FILE_ID}'
+                gdown.download(url2, MODEL_PATH, quiet=False)
+
+        if os.path.exists(MODEL_PATH) and os.path.getsize(MODEL_PATH) > 1000:
             st.success("Model downloaded successfully!")
             return True
         else:
-            st.error("Model download failed. Please check your Google Drive File ID.")
+            st.error("Model download failed — file too small or missing.")
             return False
     except Exception as e:
         st.error(f"Error downloading model: {e}")
