@@ -480,19 +480,25 @@ else:
     image = Image.open(uploaded).convert('RGB')
 
     with st.spinner("Analysing image with AI..."):
-        preds = predict_with_tta(image, model, classes, device, top_k=top_k) \
-                if use_tta else \
-                [{'rank': r+1, 'class_id': int(i), 'class_name': classes[i],
-                  'confidence': round(float(p)*100, 2)}
-                 for r, (p, i) in enumerate(zip(
-                     *[x.squeeze().cpu().tolist() for x in
-                       F.softmax(model(
-                           transforms.Compose([
-                               transforms.Resize((224,224)),
-                               transforms.ToTensor(),
-                               transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
-                           ])(image).unsqueeze(0).to(device), dim=1
-                       ).topk(top_k, dim=1)]))]
+        if use_tta:
+            preds = predict_with_tta(image, model, classes, device, top_k=top_k)
+        else:
+            transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406],
+                                     [0.229, 0.224, 0.225]),
+            ])
+            tensor = transform(image).unsqueeze(0).to(device)
+            with torch.no_grad():
+                probs = F.softmax(model(tensor), dim=1)
+            top_p, top_i = probs.topk(top_k, dim=1)
+            top_p = top_p.squeeze().cpu().tolist()
+            top_i = top_i.squeeze().cpu().tolist()
+            preds = [{'rank': r+1, 'class_id': int(i),
+                      'class_name': classes[i],
+                      'confidence': round(float(p)*100, 2)}
+                     for r, (p, i) in enumerate(zip(top_p, top_i))]
 
     preds = [p for p in preds if p['confidence'] >= conf_thresh]
 
